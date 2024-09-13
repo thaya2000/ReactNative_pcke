@@ -60,17 +60,17 @@ const HomeScreen = () => {
 
       const config = {
         issuer: `${process.env.MOBILE_APP_SERVER_URL}`,
-        // issuer: 'https://66f4-112-135-30-220.ngrok-free.app',
       };
 
       await logout(
-        {...config, clientId: 'yourClientId'},
+        {...config, clientId: `${process.env.MOBILE_APP_CLIENT_ID}`},
         {
           idToken: authResult.idToken,
-          // postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
           postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
         },
       );
+
+      // Clear tokens and other auth info from AsyncStorage
       await AsyncStorage.clear();
       console.log('Logged out and authentication info removed.');
       navigation.navigate('Login');
