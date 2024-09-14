@@ -109,13 +109,21 @@ const MainScreen: React.FC = () => {
           postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
         },
       );
-      handleLogin();
+
       await AsyncStorage.clear();
+      handleLogin();
+
       setAuthResult(null);
     } catch (error) {
       console.error('Logout failed:', error);
+      await AsyncStorage.clear();
+      await AsyncStorage.clear();
+      setAuthResult(null);
+      handleLogin();
     } finally {
       setLoading(false);
+      await AsyncStorage.clear();
+      setAuthResult(null);
     }
   };
 
