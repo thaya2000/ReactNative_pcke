@@ -22,6 +22,7 @@ const authorizeConfig = {
   clientSecret: MOBILE_APP_CLIENT_SECRET,
   redirectUrl: `${MOBILE_APP_CLIENT_URL}/oauth/callback`,
   scopes: ['openid', 'profile'],
+  dangerouslyAllowInsecureHttpRequests: true,
   serviceConfiguration: {
     authorizationEndpoint: `${MOBILE_APP_SERVER_URL}/oauth2/authorize`,
     tokenEndpoint: `${MOBILE_APP_SERVER_URL}/oauth2/token`,
@@ -30,6 +31,7 @@ const authorizeConfig = {
 
 const logoutConfig = {
   issuer: MOBILE_APP_SERVER_URL,
+  dangerouslyAllowInsecureHttpRequests: true,
 };
 
 interface AuthResult {
@@ -105,10 +107,10 @@ const MainScreen: React.FC = () => {
         // console.log('Logout going to execute');
 
         await logout(
-          {...logoutConfig, clientId: `${process.env.MOBILE_APP_CLIENT_ID}`},
+          {...logoutConfig, clientId: MOBILE_APP_CLIENT_ID},
           {
             idToken: refreshTokenResponse.idToken,
-            postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
+            postLogoutRedirectUrl: `${MOBILE_APP_CLIENT_URL}//logout-callback`,
           },
         );
       }
