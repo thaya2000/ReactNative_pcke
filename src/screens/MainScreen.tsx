@@ -10,23 +10,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {authorize, logout, refresh} from 'react-native-app-auth';
 import {useFocusEffect} from '@react-navigation/native';
 
-// Define your OAuth configuration
+import {
+  MOBILE_APP_CLIENT_ID,
+  MOBILE_APP_CLIENT_SECRET,
+  MOBILE_APP_SERVER_URL,
+  MOBILE_APP_CLIENT_URL,
+} from '../utils/apiConstants';
+
 const authorizeConfig = {
-  clientId: `${process.env.MOBILE_APP_CLIENT_ID}`,
-  clientSecret: `${process.env.MOBILE_APP_CLIENT_SECRET}`,
-  redirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}/oauth/callback`,
+  clientId: MOBILE_APP_CLIENT_ID,
+  clientSecret: MOBILE_APP_CLIENT_SECRET,
+  redirectUrl: `${MOBILE_APP_CLIENT_URL}/oauth/callback`,
   scopes: ['openid', 'profile'],
   serviceConfiguration: {
-    // authorizationEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/authorize`,
-    authorizationEndpoint:
-      'https://big-readily-cod.ngrok-free.app/oauth2/authorize',
-    // tokenEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/token`,
-    tokenEndpoint: 'https://big-readily-cod.ngrok-free.app/oauth2/token',
+    authorizationEndpoint: `${MOBILE_APP_SERVER_URL}/oauth2/authorize`,
+    tokenEndpoint: `${MOBILE_APP_SERVER_URL}/oauth2/token`,
   },
 };
 
 const logoutConfig = {
-  issuer: `${process.env.MOBILE_APP_SERVER_URL}`,
+  issuer: MOBILE_APP_SERVER_URL,
 };
 
 interface AuthResult {
@@ -72,6 +75,8 @@ const MainScreen: React.FC = () => {
   const handleLogin = async () => {
     setAuthLoading(true);
     try {
+      console.log('authorizeConfig : ', authorizeConfig);
+
       const result = await authorize(authorizeConfig);
       setAuthResult(result);
       await AsyncStorage.setItem('accessToken', result.accessToken || '');
