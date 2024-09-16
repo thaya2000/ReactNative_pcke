@@ -7,19 +7,26 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {authorize, logout} from 'react-native-app-auth';
+import {authorize, logout, refresh} from 'react-native-app-auth';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 // Define your OAuth configuration
-const config = {
+const authorizeConfig = {
   clientId: `${process.env.MOBILE_APP_CLIENT_ID}`,
   clientSecret: `${process.env.MOBILE_APP_CLIENT_SECRET}`,
   redirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}/oauth/callback`,
   scopes: ['openid', 'profile'],
   serviceConfiguration: {
-    authorizationEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/authorize`,
-    tokenEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/token`,
+    // authorizationEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/authorize`,
+    authorizationEndpoint:
+      'https://big-readily-cod.ngrok-free.app/oauth2/authorize',
+    // tokenEndpoint: `${process.env.MOBILE_APP_SERVER_URL}/oauth2/token`,
+    tokenEndpoint: 'https://big-readily-cod.ngrok-free.app/oauth2/token',
   },
+};
+
+const logoutConfig = {
+  issuer: `${process.env.MOBILE_APP_SERVER_URL}`,
 };
 
 interface AuthResult {
@@ -27,7 +34,6 @@ interface AuthResult {
   refreshToken: string | null;
   accessTokenExpirationDate: string | null;
   tokenType: string | null;
-  scopes: string[] | null;
   idToken: string | null;
 }
 
@@ -44,7 +50,6 @@ const MainScreen: React.FC = () => {
         'accessTokenExpirationDate',
       );
       const tokenType = await AsyncStorage.getItem('tokenType');
-      const scopes = await AsyncStorage.getItem('scopes');
       const idToken = await AsyncStorage.getItem('idToken');
 
       if (accessToken) {
@@ -53,7 +58,6 @@ const MainScreen: React.FC = () => {
           refreshToken,
           accessTokenExpirationDate,
           tokenType,
-          scopes: scopes ? JSON.parse(scopes) : null,
           idToken,
         });
       } else {
@@ -70,17 +74,12 @@ const MainScreen: React.FC = () => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const result = await authorize(config);
+      const result = await authorize(authorizeConfig);
+      // console.log('result handleLogin', result);
       setAuthResult(result);
       await AsyncStorage.setItem('accessToken', result.accessToken || '');
       await AsyncStorage.setItem('refreshToken', result.refreshToken || '');
-      await AsyncStorage.setItem(
-        'accessTokenExpirationDate',
-        result.accessTokenExpirationDate || '',
-      );
       await AsyncStorage.setItem('idToken', result.idToken || '');
-      await AsyncStorage.setItem('tokenType', result.tokenType || '');
-      await AsyncStorage.setItem('scopes', JSON.stringify(result.scopes || []));
     } catch (error) {
       console.error('Login failed:', error);
       handleLogin();
@@ -93,38 +92,66 @@ const MainScreen: React.FC = () => {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      if (!authResult?.idToken) {
-        console.error('No idToken found for logout.');
-        return;
+      if (authResult && authResult.refreshToken) {
+        const result_RT = await refresh(authorizeConfig, {
+          refreshToken: authResult.refreshToken,
+        });
+        setAuthResult(result_RT);
+
+        console.log('idToken A : ', result_RT.idToken);
+        console.log('idToken B : ', authResult.idToken);
+
+        console.log('Logout going to execute');
+
+        const logout_T = await logout(
+          {...logoutConfig, clientId: `${process.env.MOBILE_APP_CLIENT_ID}`},
+          {
+            idToken: result_RT.idToken,
+            postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
+          },
+        );
+
+        console.log('Logout Result : ', logout_T);
       }
-
-      const config = {
-        issuer: `${process.env.MOBILE_APP_SERVER_URL}`,
-      };
-
-      await logout(
-        {...config, clientId: `${process.env.MOBILE_APP_CLIENT_ID}`},
-        {
-          idToken: authResult.idToken,
-          postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
-        },
-      );
-
-      await AsyncStorage.clear();
-      handleLogin();
-
-      setAuthResult(null);
     } catch (error) {
-      console.error('Logout failed:', error);
-      await AsyncStorage.clear();
-      await AsyncStorage.clear();
-      setAuthResult(null);
-      handleLogin();
+      console.log('Refresh error : ', error);
     } finally {
       setLoading(false);
-      await AsyncStorage.clear();
-      setAuthResult(null);
+      handleLogin();
     }
+
+    //   // const config2 = {
+    //   //   issuer: `${process.env.MOBILE_APP_SERVER_URL}`,
+    //   // };
+
+    //   // console.log('####################################');
+    //   // console.log('');
+    //   // const result2 = await logout(
+    //   //   {...config2, clientId: `${process.env.MOBILE_APP_CLIENT_ID}`},
+    //   //   {
+    //   //     idToken: authResult.idToken,
+    //   //     postLogoutRedirectUrl: `${process.env.MOBILE_APP_CLIENT_URL}//logout-callback`,
+    //   //   },
+    //   // );
+
+    //   // console.log('Logout Result : ', result2);
+    //   // console.log('####################################');
+
+    //   // await AsyncStorage.clear();
+    //   // handleLogin();
+
+    //   // setAuthResult(null);
+    // } catch (error) {
+    //   // console.error('Logout failed:', error);
+    //   // await AsyncStorage.clear();
+    //   // await AsyncStorage.clear();
+    //   // setAuthResult(null);
+    //   // handleLogin();
+    // } finally {
+    //   // setLoading(false);
+    //   // await AsyncStorage.clear();
+    //   // setAuthResult(null);
+    // }
   };
 
   // useFocusEffect to check authentication status every time the screen is focused
